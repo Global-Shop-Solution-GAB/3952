@@ -1,0 +1,401 @@
+Program.Sub.ScreenSU.Start
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+
+Variable.Global.sJob.Declare(String)
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+'Billy Sellers
+'Quote 5425
+'4/24/14
+
+F.Intrinsic.Control.SetErrorHandler("Main_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String)
+
+'Start
+
+F.ODBC.connection!conx.OpenConnection(V.Ambient.PDSN,V.Ambient.puser,V.Ambient.PPass)
+
+F.Intrinsic.Control.SelectCase(V.Caller.Hook)
+	F.Intrinsic.Control.Case("16630")
+		F.Intrinsic.Control.If(V.Caller.Switches,=,"N S")
+			F.Intrinsic.Control.CallSub(Getnewjob)
+		F.Intrinsic.Control.ElseIf(V.Caller.Switches,=,"N O")
+			F.Intrinsic.Control.CallSub(Getnewjob)
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.Case("16640")
+		F.Intrinsic.Control.If(V.Caller.Switches,=,"N S")
+			F.Intrinsic.Control.CallSub(Deletetemp)
+		F.Intrinsic.Control.ElseIf(V.Caller.Switches,=,"N O")
+			F.Intrinsic.Control.CallSub(Deletetemp)
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.Case("16650")
+		F.Intrinsic.Control.If(V.Caller.Switches,=,"N S")
+			F.Intrinsic.Control.CallSub(Updatelast)
+		F.Intrinsic.Control.ElseIf(V.Caller.Switches,=,"N O")
+			F.Intrinsic.Control.CallSub(Updatelast)
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.Case("17240")
+		F.Intrinsic.Control.If(V.Caller.Switches,=,"N B")
+			F.Intrinsic.Control.CallSub(Getnewjob)
+		F.Intrinsic.Control.ElseIf(V.Caller.Switches,=,"N E")
+			F.Intrinsic.Control.CallSub(Getnewjob)
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.Case("17250")
+		F.Intrinsic.Control.If(V.Caller.Switches,=,"N B")
+			F.Intrinsic.Control.CallSub(Deletetemp)
+		F.Intrinsic.Control.ElseIf(V.Caller.Switches,=,"N E")
+			F.Intrinsic.Control.CallSub(Deletetemp)
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.Case("17260")
+		F.Intrinsic.Control.If(V.Caller.Switches,=,"N B")
+			F.Intrinsic.Control.CallSub(Updatelast)
+		F.Intrinsic.Control.ElseIf(V.Caller.Switches,=,"N E")
+			F.Intrinsic.Control.CallSub(Updatelast)
+		F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndSelect
+
+'End
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("Main_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_3952_Auto_No_WO.gas",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.CallSub(Unload)
+Function.Intrinsic.Control.EndIf
+
+
+Program.Sub.Main.End
+
+Program.Sub.GetNewJob.Start
+F.Intrinsic.Control.SetErrorHandler("GetNewJob_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String)
+
+'Start
+V.Local.sNewJob.Declare(String)
+V.Local.sSql.Declare(String)
+V.Local.sHook.Declare(String)
+
+V.Local.sMonth.Declare(String)
+V.Local.sYear.Declare(String)
+V.Local.sCentury.Declare(String)
+V.Local.iCounter.Declare(Long)
+V.Local.sCounter.Declare(String)
+
+
+F.Intrinsic.Control.CallSub(Getmonth)
+V.Local.sMonth.Set(V.Args.sRet)
+
+F.Intrinsic.Control.CallSub(Getyear)
+V.Local.sYear.Set(V.Args.sRet)
+
+F.Intrinsic.Control.CallSub(Getcentury)
+V.Local.sCentury.Set(V.Args.sRet)
+
+V.Local.sSql.Set("Select MAX(COUNTER) as COUNTER From GCG_3952_AUTO_NO_WO")
+F.ODBC.Connection!conx.OpenLocalRecordsetRO("rst",V.Local.sSQL)
+F.Intrinsic.Control.If(V.ODBC.conx!rst.EOF,<>,True)
+	V.Local.iCounter.Set(V.ODBC.conx!rst.FieldValTrim!COUNTER)
+F.Intrinsic.Control.EndIf
+F.ODBC.conx!rst.Close
+
+F.Intrinsic.Math.Add(V.Local.iCounter,1,V.Local.iCounter)
+F.Intrinsic.String.LPad(V.Local.iCounter,"0",3,V.Local.sCounter)
+F.Intrinsic.String.Concat(V.Local.sCentury,V.Local.sYear,V.Local.sMonth,V.Local.sCounter,V.Local.sNewJob)
+
+F.ODBC.Connection!conx.OpenLocalRecordsetRW("rst","Select * From GCG_3952_AUTO_NO_WO")
+F.Intrinsic.Control.If(V.ODBC.conx!rst.EOF,<>,True)
+	F.ODBC.conx!rst.AddNew
+	F.ODBC.conx!rst.Set!REC_TYPE("TEMP")
+	F.ODBC.conx!rst.Set!JOB(V.Local.sNewJob)
+	F.ODBC.conx!rst.Set!CENTURY(V.Local.sCentury)
+	F.ODBC.conx!rst.Set!MONTH(V.Local.sMonth)
+	F.ODBC.conx!rst.Set!YEAR(V.Local.sYear)
+	F.ODBC.conx!rst.Set!COUNTER(V.local.iCounter)
+	F.ODBC.conx!rst.update
+F.Intrinsic.Control.EndIf
+F.ODBC.conx!rst.Close
+
+
+
+F.Intrinsic.String.Left(V.Caller.Hook,2,V.Local.sHook)
+F.Intrinsic.Control.If(V.Local.sHook,=,"16")
+	V.Passed.000003.Set(V.Local.sNewJob)
+	V.Passed.000004.Set("000")
+F.Intrinsic.Control.ElseIf(V.Local.sHook,=,"17")
+	V.Passed.000013.Set(V.Local.sNewJob)
+F.Intrinsic.Control.EndIf
+
+'End
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("GetNewJob_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_3952_Auto_No_WO.gas",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.CallSub(Unload)
+Function.Intrinsic.Control.EndIf
+
+
+Program.Sub.GetNewJob.End
+
+Program.Sub.Unload.Start
+F.Intrinsic.Control.SetErrorHandler("Unload_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String)
+
+'Start
+
+F.ODBC.Connection!conx.Close
+F.Intrinsic.Control.End
+
+'End
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("Unload_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_3952_Auto_No_WO.gas",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.End
+Function.Intrinsic.Control.EndIf
+
+
+Program.Sub.Unload.End
+
+Program.Sub.DeleteTemp.Start
+F.Intrinsic.Control.SetErrorHandler("DeleteTemp_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String)
+
+'Start
+V.Local.sSql.Declare(String)
+V.Local.sHook.Declare(String)
+V.Local.sJob.Declare(String)
+
+F.Intrinsic.String.Left(V.Caller.Hook,2,V.Local.sHook)
+F.Intrinsic.Control.If(V.Local.sHook,=,"16")
+	V.Local.sJob.Set(V.Passed.000003)
+F.Intrinsic.Control.ElseIf(V.Local.sHook,=,"17")
+	V.Local.sJob.Set(V.Passed.000013)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.String.Concat("Delete From GCG_3952_AUTO_NO_WO Where REC_TYPE = 'TEMP' and JOB = '",V.Local.sJob,"'",V.Local.sSql)
+F.ODBC.Connection!conx.Execute(V.Local.sSql)
+
+
+'End
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("DeleteTemp_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_3952_Auto_No_WO.gas",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.CallSub(Unload)
+Function.Intrinsic.Control.EndIf
+
+
+Program.Sub.DeleteTemp.End
+
+Program.Sub.UpdateLast.Start
+F.Intrinsic.Control.SetErrorHandler("UpdateLast_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String)
+
+'Start
+
+V.Local.sSql.Declare(String)
+V.Local.sHook.Declare(String)
+V.Local.sJob.Declare(String)
+
+F.Intrinsic.String.Left(V.Caller.Hook,2,V.Local.sHook)
+F.Intrinsic.Control.If(V.Local.sHook,=,"16")
+	V.Local.sJob.Set(V.Passed.000003)
+F.Intrinsic.Control.ElseIf(V.Local.sHook,=,"17")
+	V.Local.sJob.Set(V.Passed.000013)
+F.Intrinsic.Control.EndIf
+
+V.Local.sSql.Set("Delete From GCG_3952_AUTO_NO_WO Where REC_TYPE = 'LAST'")
+F.ODBC.Connection!conx.Execute(V.Local.sSql)
+
+F.Intrinsic.String.Concat("Select * From GCG_3952_AUTO_NO_WO Where REC_TYPE = 'TEMP' And JOB = '",V.Local.sJob,"'",V.Local.sSql)
+F.ODBC.Connection!conx.OpenLocalRecordsetRW("rst",V.Local.sSql)
+F.Intrinsic.Control.If(V.ODBC.conx!rst.EOF,<>,True)
+	F.ODBC.conx!rst.Set!REC_TYPE("LAST")
+	F.ODBC.conx!rst.update
+F.Intrinsic.Control.EndIf
+F.ODBC.conx!rst.Close
+
+'End
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("UpdateLast_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_3952_Auto_No_WO.gas",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.CallSub(Unload)
+Function.Intrinsic.Control.EndIf
+
+
+Program.Sub.UpdateLast.End
+
+Program.Sub.GetYear.Start
+F.Intrinsic.Control.SetErrorHandler("GetYear_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String)
+
+'Start
+
+V.Local.sRet.Declare(String)
+V.Local.sYear.Declare(String)
+
+F.Intrinsic.Date.Year(V.Ambient.Date,V.Local.sYear)
+
+F.Intrinsic.String.Right(V.Local.sYear,1,V.Local.sRet)
+
+F.Intrinsic.Variable.AddRV("sRet",V.Local.sRet)
+
+'End
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("GetYear_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_3952_Auto_No_WO.gas",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.CallSub(Unload)
+Function.Intrinsic.Control.EndIf
+
+
+Program.Sub.GetYear.End
+
+Program.Sub.GetMonth.Start
+F.Intrinsic.Control.SetErrorHandler("GetMonth_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String)
+
+'Start
+
+V.Local.sRet.Declare(String)
+V.Local.iMonth.Declare(String)
+
+F.Intrinsic.Date.Month(V.Ambient.Date,V.Local.iMonth)
+
+F.Intrinsic.Control.SelectCase(V.Local.iMonth)
+	F.Intrinsic.Control.Case(1)
+		V.Local.sRet.Set("A")
+	F.Intrinsic.Control.Case(2)
+		V.Local.sRet.Set("B")
+	F.Intrinsic.Control.Case(3)
+		V.Local.sRet.Set("C")
+	F.Intrinsic.Control.Case(4)
+		V.Local.sRet.Set("D")
+	F.Intrinsic.Control.Case(5)
+		V.Local.sRet.Set("E")
+	F.Intrinsic.Control.Case(6)
+		V.Local.sRet.Set("F")
+	F.Intrinsic.Control.Case(7)
+		V.Local.sRet.Set("G")
+	F.Intrinsic.Control.Case(8)
+		V.Local.sRet.Set("H")
+	F.Intrinsic.Control.Case(9)
+		V.Local.sRet.Set("I")
+	F.Intrinsic.Control.Case(10)
+		V.Local.sRet.Set("J")
+	F.Intrinsic.Control.Case(11)
+		V.Local.sRet.Set("K")
+	F.Intrinsic.Control.Case(12)
+		V.Local.sRet.Set("L")
+F.Intrinsic.Control.EndSelect
+
+F.Intrinsic.Variable.AddRV("sRet",V.Local.sRet)
+
+'End
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("GetMonth_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_3952_Auto_No_WO.gas",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.CallSub(Unload)
+Function.Intrinsic.Control.EndIf
+
+
+Program.Sub.GetMonth.End
+
+Program.Sub.GetCentury.Start
+F.Intrinsic.Control.SetErrorHandler("GetCentury_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String)
+
+'Start
+
+V.Local.sRet.Declare(String)
+V.Local.sCent.Declare(String)
+V.Local.sYear.Declare(String)
+
+F.Intrinsic.Date.Year(V.Ambient.Date,V.Local.sYear)
+
+F.Intrinsic.String.Left(V.Local.sYear,2,V.Local.sCent)
+
+
+F.Intrinsic.Control.If(V.Local.sCent,=,"19")
+	V.Local.sRet.Set("A")
+F.Intrinsic.Control.ElseIf(V.Local.sCent,=,"20")
+	V.Local.sRet.Set("B")
+F.Intrinsic.Control.ElseIf(V.Local.sCent,=,"21")
+	V.Local.sRet.Set("C")
+F.Intrinsic.Control.ElseIf(V.Local.sCent,=,"22")
+	V.Local.sRet.Set("D")
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Variable.AddRV("sRet",V.Local.sRet)
+
+'End
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("GetCentury_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_3952_Auto_No_WO.gas",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.CallSub(Unload)
+Function.Intrinsic.Control.EndIf
+
+
+Program.Sub.GetCentury.End
+
+Program.Sub.Comments.Start
+${$0$}$GCG_Auto_Num_WO$}$BSELLERS$}$4/24/2014
+${$1$}$$}$$}$5$}$17260$}$BMS501-OK-BTN-PRE-HOOK (BOM WO CREATION/RE-SCHEDULE)$}$4/24/2014 11:00:30 AM$}$(Program: BMJ501; Screen: BMS501)
+
+${$1$}$$}$$}$4$}$17250$}$BMS501-EXIT-PRE-HOOK (BOM WO CREATION/RE-SCHEDULE)$}$4/24/2014 11:00:17 AM$}$(Program: BMJ501; Screen: BMS501)
+
+${$1$}$$}$$}$3$}$17240$}$BMS501-POPULATE-HOOK (BOM WO CREATION/RE-SCHEDULE)$}$4/24/2014 10:59:52 AM$}$(Program: BMJ501; Screen: BMS501)
+
+${$1$}$$}$$}$2$}$16650$}$Pre-OK Hook$}$4/24/2014 10:57:18 AM$}$(Program: JB0010GI ; Screen: JBS0010  )
+
+${$1$}$$}$$}$1$}$16640$}$Pre-Exit Hook$}$4/24/2014 10:56:45 AM$}$(Program: JB0010GI ; Screen: JBS0010  )
+
+${$1$}$$}$$}$0$}$16630$}$Populate Hook$}$4/24/2014 10:55:28 AM$}$(Program: JB0010GI; Screen: JBS0010  )
+
+Program.Sub.Comments.End
+
